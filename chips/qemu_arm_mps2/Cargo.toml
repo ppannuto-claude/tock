@@ -1,0 +1,23 @@
+# Licensed under the Apache License, Version 2.0 or the MIT License.
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Copyright Tock Contributors 2026.
+
+[package]
+name = "qemu_arm_mps2"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+cortexm = { path = "../../arch/cortex-m" }
+cortexm3 = { path = "../../arch/cortex-m3", optional = true }
+cortexm4 = { path = "../../arch/cortex-m4", optional = true }
+kernel = { path = "../../kernel" }
+
+[features]
+# Selects which concrete vector table this chip crate provides.
+cortex-m3 = ["dep:cortexm3"]
+cortex-m4 = ["dep:cortexm4"]
+
+[lints]
+workspace = true
