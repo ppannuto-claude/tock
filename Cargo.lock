@@ -1275,6 +1275,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "qemu_arm_mps2"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm",
+ "cortexm3",
+ "cortexm4",
+ "kernel",
+]
+
+[[package]]
+name = "qemu_arm_mps2_an385"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm3",
+ "kernel",
+ "qemu_arm_mps2",
+ "qemu_arm_mps2_lib",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "qemu_arm_mps2_an386"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm4",
+ "kernel",
+ "qemu_arm_mps2",
+ "qemu_arm_mps2_lib",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "qemu_arm_mps2_lib"
+version = "0.2.3-dev"
+dependencies = [
+ "capsules-core",
+ "capsules-extra",
+ "capsules-system",
+ "components",
+ "cortexm",
+ "kernel",
+ "qemu_arm_mps2",
+]
+
+[[package]]
 name = "qemu_i486_q35"
 version = "0.2.3-dev"
 dependencies = [
