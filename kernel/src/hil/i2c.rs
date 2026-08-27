@@ -295,6 +295,10 @@ pub trait I2CClient {
 pub struct NoSMBus;
 
 impl<'a> I2CMaster<'a> for NoSMBus {
+    /// # Code Tier
+    ///
+    /// - Assurance: Normal
+    /// - Importance: Normal
     fn set_master_client(&self, _master_client: &'a dyn I2CHwMasterClient) {}
     fn enable(&self) {}
     fn disable(&self) {}
