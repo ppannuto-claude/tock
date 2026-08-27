@@ -730,6 +730,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "mps2-an385"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm3",
+ "kernel",
+ "mps2_base",
+ "qemu_arm_mps2",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "mps2-an386"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm4",
+ "kernel",
+ "mps2_base",
+ "qemu_arm_mps2",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "mps2_base"
+version = "0.2.3-dev"
+dependencies = [
+ "capsules-core",
+ "capsules-system",
+ "components",
+ "cortexm",
+ "kernel",
+ "qemu_arm_mps2",
+]
+
+[[package]]
 name = "msp-exp432p401r"
 version = "0.2.3-dev"
 dependencies = [
@@ -1271,6 +1305,16 @@ version = "0.2.3-dev"
 dependencies = [
  "cortexm0p",
  "enum_primitive",
+ "kernel",
+]
+
+[[package]]
+name = "qemu_arm_mps2"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm",
+ "cortexm3",
+ "cortexm4",
  "kernel",
 ]
 
