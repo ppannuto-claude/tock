@@ -196,15 +196,21 @@ impl<'a> Spi<'a> {
             && self.registers.sr.is_set(SR::Tfe)
             && !self.registers.sr.is_set(SR::Bsy)
         {
-            self.client.map(|client| {
-                self.registers.imsc.modify(IMSC::Txim::CLEAR);
-                self.registers.imsc.modify(IMSC::Rxim::CLEAR);
-                self.disable();
-                self.transfer_state.set(SPI_IDLE);
-                self.tx_buffer.take().map(|buf| {
-                    client.read_write_done(buf, self.rx_buffer.take(), Ok(self.len.get()))
-                });
-            });
+            // Tear the transfer down before handing the buffers back, not
+            // inside the client callback: with no client registered,
+            // `transfer_state` would otherwise never return to `SPI_IDLE`,
+            // leaving the driver permanently busy while the level-triggered
+            // TX interrupt re-asserts on every service pass.
+            self.registers.imsc.modify(IMSC::Txim::CLEAR);
+            self.registers.imsc.modify(IMSC::Rxim::CLEAR);
+            self.disable();
+            self.transfer_state.set(SPI_IDLE);
+
+            if let Some(tx_buffer) = self.tx_buffer.take() {
+                let rx_buffer = self.rx_buffer.take();
+                self.client
+                    .map(|client| client.read_write_done(tx_buffer, rx_buffer, Ok(self.len.get())));
+            }
         }
     }
 }
