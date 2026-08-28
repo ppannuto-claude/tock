@@ -40,11 +40,12 @@ impl Fpgaio {
         Fpgaio { registers }
     }
 
-    /// Returns a [`hil::led::Led`] handle for LED `index` (`0..NUM_LEDS`).
-    pub fn led(&self, index: u32) -> Led<'_> {
+    /// Returns a [`hil::led::Led`] handle for LED `INDEX`.
+    pub fn led<const INDEX: u32>(&self) -> Led<'_> {
+        const { assert!(INDEX < NUM_LEDS) };
         Led {
             fpgaio: self,
-            mask: 1 << index,
+            mask: 1 << INDEX,
         }
     }
 }

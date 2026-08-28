@@ -228,11 +228,8 @@ impl<'a> hil::uart::Transmit<'a> for Uart<'a> {
         tx_data: &'static mut [u8],
         tx_len: usize,
     ) -> Result<(), (ErrorCode, &'static mut [u8])> {
-        if tx_len > tx_data.len() {
+        if tx_len == 0 || tx_len > tx_data.len() {
             return Err((ErrorCode::SIZE, tx_data));
-        }
-        if tx_len == 0 {
-            return Err((ErrorCode::INVAL, tx_data));
         }
         if self.tx_buffer.is_some() {
             return Err((ErrorCode::BUSY, tx_data));
@@ -272,7 +269,7 @@ impl<'a> hil::uart::Receive<'a> for Uart<'a> {
         rx_buffer: &'static mut [u8],
         rx_len: usize,
     ) -> Result<(), (ErrorCode, &'static mut [u8])> {
-        if rx_len > rx_buffer.len() {
+        if rx_len == 0 || rx_len > rx_buffer.len() {
             return Err((ErrorCode::SIZE, rx_buffer));
         }
         if self.rx_buffer.is_some() {

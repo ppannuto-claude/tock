@@ -271,8 +271,8 @@ pub unsafe fn finish_start<C: CortexMVariant>(
 
     let led = components::led::LedsComponent::new().finalize(components::led_component_static!(
         qemu_arm_mps2::led::Led<'static>,
-        peripherals.fpgaio.led(0),
-        peripherals.fpgaio.led(1),
+        peripherals.fpgaio.led::<0>(),
+        peripherals.fpgaio.led::<1>(),
     ));
 
     let scheduler = components::sched::round_robin::RoundRobinComponent::new(processes)
