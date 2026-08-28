@@ -45,13 +45,13 @@ fn mps2_an385() -> Result<(), Error> {
     // the standard Rust process library mechanism instead.
     let mut build = Command::new("make")
         .arg("-C")
-        .arg("../../../boards/qemu_arm_mps2_an385")
+        .arg("../../../boards/qemu_arm_mps2/an385")
         .spawn()
         .expect("failed to spawn build");
     assert!(build.wait().unwrap().success());
 
     let mut p = spawn(
-        "make qemu -C ../../../boards/qemu_arm_mps2_an385",
+        "make qemu -C ../../../boards/qemu_arm_mps2/an385",
         Some(10_000),
     )?;
 
@@ -71,13 +71,13 @@ fn mps2_an386() -> Result<(), Error> {
     // the standard Rust process library mechanism instead.
     let mut build = Command::new("make")
         .arg("-C")
-        .arg("../../../boards/qemu_arm_mps2_an386")
+        .arg("../../../boards/qemu_arm_mps2/an386")
         .spawn()
         .expect("failed to spawn build");
     assert!(build.wait().unwrap().success());
 
     let mut p = spawn(
-        "make qemu -C ../../../boards/qemu_arm_mps2_an386",
+        "make qemu -C ../../../boards/qemu_arm_mps2/an386",
         Some(10_000),
     )?;
 

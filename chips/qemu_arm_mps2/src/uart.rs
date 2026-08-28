@@ -193,8 +193,15 @@ impl hil::uart::Configure for Uart<'_> {
             return Err(ErrorCode::NOSUPPORT);
         }
 
+        if params.baud_rate == 0 {
+            return Err(ErrorCode::INVAL);
+        }
+        // The divisor must fit BAUDDIV's 20-bit field, and the CMSDK UART TRM
+        // (ARM DDI0479C) documents 16 as the minimum legal value.
+        const BAUDDIV_MIN: u32 = 16;
+        const BAUDDIV_MAX: u32 = (1 << 20) - 1;
         let bauddiv = SYSCLK_FRQ / params.baud_rate;
-        if !(16..=SYSCLK_FRQ).contains(&bauddiv) {
+        if !(BAUDDIV_MIN..=BAUDDIV_MAX).contains(&bauddiv) {
             return Err(ErrorCode::INVAL);
         }
         self.registers.bauddiv.write(BAUDDIV::Div.val(bauddiv));
