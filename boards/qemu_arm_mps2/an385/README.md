@@ -26,10 +26,10 @@ address 0; no bootloader or `-bios` indirection is needed.
   $ make run
   [...]
      text	   data	    bss	    dec	    hex	filename
-    61484	      0	  15664	  77148	  12d5c	target/thumbv7m-none-eabi/release/an385
+    61484	      0	  15664	  77148	  12d5c	target/thumbv7m-none-eabi/release/mps2-an385
 
   Running QEMU emulator version 10.2.1 with
-   - kernel target/thumbv7m-none-eabi/release/an385.elf
+   - kernel target/thumbv7m-none-eabi/release/mps2-an385.elf
   To exit type C-a x
 
   QEMU MPS2 AN385 (Cortex-M3) initialization complete.

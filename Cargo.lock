@@ -3,28 +3,6 @@
 version = 4
 
 [[package]]
-name = "an385"
-version = "0.2.3-dev"
-dependencies = [
- "cortexm3",
- "kernel",
- "mps2_base",
- "qemu_arm_mps2",
- "tock_build_scripts",
-]
-
-[[package]]
-name = "an386"
-version = "0.2.3-dev"
-dependencies = [
- "cortexm4",
- "kernel",
- "mps2_base",
- "qemu_arm_mps2",
- "tock_build_scripts",
-]
-
-[[package]]
 name = "apollo3"
 version = "0.2.3-dev"
 dependencies = [
@@ -748,6 +726,28 @@ dependencies = [
  "nrf52",
  "nrf52833",
  "nrf52_components",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "mps2-an385"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm3",
+ "kernel",
+ "mps2_base",
+ "qemu_arm_mps2",
+ "tock_build_scripts",
+]
+
+[[package]]
+name = "mps2-an386"
+version = "0.2.3-dev"
+dependencies = [
+ "cortexm4",
+ "kernel",
+ "mps2_base",
+ "qemu_arm_mps2",
  "tock_build_scripts",
 ]
 

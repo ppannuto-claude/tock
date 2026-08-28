@@ -21,10 +21,10 @@ Running QEMU
   $ make run
   [...]
      text	   data	    bss	    dec	    hex	filename
-    61484	      0	  15664	  77148	  12d5c	target/thumbv7em-none-eabi/release/an386
+    61484	      0	  15664	  77148	  12d5c	target/thumbv7em-none-eabi/release/mps2-an386
 
   Running QEMU emulator version 10.2.1 with
-   - kernel target/thumbv7em-none-eabi/release/an386.elf
+   - kernel target/thumbv7em-none-eabi/release/mps2-an386.elf
   To exit type C-a x
 
   QEMU MPS2 AN386 (Cortex-M4) initialization complete.
@@ -32,5 +32,5 @@ Running QEMU
   tock$
   ```
 
-- **`run-app`**: same as `an385`'s (`make run-app
+- **`run-app`**: same as `mps2-an385`'s (`make run-app
   APP=$PATH_TO_APP.tbf`).
