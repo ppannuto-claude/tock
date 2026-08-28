@@ -122,6 +122,12 @@ const SCR_MAX: u32 = 255;
 const RATE_MIN: u32 = SYSCLK_FRQ.div_ceil(CPSDVSR_MAX * (SCR_MAX + 1));
 const RATE_MAX: u32 = SYSCLK_FRQ / CPSDVSR_MIN;
 
+// Default SPI clock speed, used by `init()`.
+//
+// The value is arbitrary within the band above: QEMU does not model
+// transfer timing, so this only affects what `get_rate()` reports back.
+const DEFAULT_RATE_HZ: u32 = 1_000_000;
+
 // Bitfield of device logical state (i.e., non-exclusive states)
 const SPI_IDLE: u8 = 0b000;
 const SPI_WRITE_IN_PROGRESS: u8 = 0b001;
@@ -244,7 +250,7 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
         // Master mode (Cr1::Ms::CLEAR); slave mode isn't implemented in
         // QEMU's PL022 model anyway.
         self.registers.cr1.modify(CR1::Ms::CLEAR);
-        self.set_rate(1_000_000)?;
+        self.set_rate(DEFAULT_RATE_HZ)?;
         Ok(())
     }
 
@@ -277,8 +283,6 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
         }
 
         self.enable();
-        self.registers.imsc.modify(IMSC::Txim::CLEAR);
-        self.registers.imsc.modify(IMSC::Rxim::CLEAR);
 
         self.len.set(len);
         let mut state = SPI_IN_PROGRESS | SPI_WRITE_IN_PROGRESS;
@@ -292,6 +296,8 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
             self.rx_position.set(0);
             self.rx_buffer.replace(rb);
             self.registers.imsc.modify(IMSC::Rxim::SET);
+        } else {
+            self.registers.imsc.modify(IMSC::Rxim::CLEAR);
         }
 
         self.transfer_state.set(state);
@@ -302,6 +308,11 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
         if self.is_busy() {
             return Err(ErrorCode::BUSY);
         }
+        // The PL022 only shifts data out while SSE is set, and nothing else
+        // on the synchronous path leaves it set: `init()` never enables the
+        // device and `read_write_byte()` disables it again on the way out.
+        // Without this, a write lands in the TX FIFO and is never sent.
+        self.enable();
         while !self.registers.sr.is_set(SR::Tnf) {}
         self.registers.dr.write(DR::Data.val(val as u32));
         Ok(())
@@ -315,7 +326,7 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
         if self.is_busy() {
             return Err(ErrorCode::BUSY);
         }
-        self.enable();
+        // `write_byte()` enables the device itself.
         self.write_byte(val)?;
         while !self.registers.sr.is_set(SR::Rne) {}
         let byte = self.registers.dr.read(DR::Data) as u8;
@@ -356,6 +367,8 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
     }
 
     fn get_rate(&self) -> u32 {
+        // CPSDVSR reads back as 0 out of reset, before `init()` runs; clamp
+        // so this reports a nonsense rate rather than dividing by zero.
         let prescale = self.registers.cpsr.read(CPSR::Cpsdvsr).max(1);
         let postdiv = self.registers.cr0.read(CR0::Scr) + 1;
         SYSCLK_FRQ / (prescale * postdiv)
