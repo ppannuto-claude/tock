@@ -111,6 +111,17 @@ register_bitfields![u32,
     ],
 ];
 
+// PL022 clock dividers: the serial clock is
+// `SYSCLK_FRQ / (CPSDVSR * (1 + SCR))`, where CPSDVSR is an even value in
+// 2..=254 and SCR is in 0..=255.
+const CPSDVSR_MIN: u32 = 2;
+const CPSDVSR_MAX: u32 = 254;
+const SCR_MAX: u32 = 255;
+
+// The band of rates those dividers can realize, slowest and fastest.
+const RATE_MIN: u32 = SYSCLK_FRQ.div_ceil(CPSDVSR_MAX * (SCR_MAX + 1));
+const RATE_MAX: u32 = SYSCLK_FRQ / CPSDVSR_MIN;
+
 // Bitfield of device logical state (i.e., non-exclusive states)
 const SPI_IDLE: u8 = 0b000;
 const SPI_WRITE_IN_PROGRESS: u8 = 0b001;
@@ -319,34 +330,29 @@ impl<'a> SpiMaster<'a> for Spi<'a> {
     fn set_rate(&self, rate: u32) -> Result<u32, ErrorCode> {
         // QEMU's PL022 does not model timing at all, so this only affects
         // what get_rate() reports back, not actual transfer speed. The
-        // divider math (CPSR * (SCR+1)) mirrors the real PL022 hardware
-        // formula so real-hardware callers get a sane answer too.
-        if rate == 0 || rate > SYSCLK_FRQ {
+        // divider math mirrors the real PL022 formula so real-hardware
+        // callers get a sane answer too.
+        if !(RATE_MIN..=RATE_MAX).contains(&rate) {
             return Err(ErrorCode::INVAL);
         }
 
-        let mut prescale = 0u32;
-        let mut postdiv = 0u32;
-        for p in (2..254).step_by(2) {
-            if (SYSCLK_FRQ as u64) < ((p + 2) as u64 * 256 * rate as u64) {
-                prescale = p;
-                break;
-            }
-        }
-        for p in (2..256).rev() {
-            if prescale > 0 && (SYSCLK_FRQ / (prescale * (p - 1))) > rate {
-                postdiv = p;
-                break;
-            }
-        }
+        // Round the divisor up, so the configured clock is never faster than
+        // what the caller asked for.
+        let divisor = SYSCLK_FRQ.div_ceil(rate);
 
-        if prescale == 0 || postdiv == 0 {
-            return Err(ErrorCode::INVAL);
-        }
+        // The smallest legal CPSDVSR leaves the largest SCR, and so the
+        // finest granularity and the closest achievable rate.
+        let (cpsdvsr, scr) = (CPSDVSR_MIN..=CPSDVSR_MAX)
+            .step_by(2)
+            .find_map(|cpsdvsr| {
+                let scr = divisor.div_ceil(cpsdvsr) - 1;
+                (scr <= SCR_MAX).then_some((cpsdvsr, scr))
+            })
+            .ok_or(ErrorCode::INVAL)?;
 
-        self.registers.cpsr.write(CPSR::Cpsdvsr.val(prescale));
-        self.registers.cr0.modify(CR0::Scr.val(postdiv - 1));
-        Ok(SYSCLK_FRQ / (prescale * postdiv))
+        self.registers.cpsr.write(CPSR::Cpsdvsr.val(cpsdvsr));
+        self.registers.cr0.modify(CR0::Scr.val(scr));
+        Ok(SYSCLK_FRQ / (cpsdvsr * (scr + 1)))
     }
 
     fn get_rate(&self) -> u32 {
