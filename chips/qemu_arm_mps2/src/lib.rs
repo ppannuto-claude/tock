@@ -52,12 +52,6 @@ impl Mps2DefaultPeripherals<'_> {
     }
 }
 
-impl Default for Mps2DefaultPeripherals<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl InterruptService for Mps2DefaultPeripherals<'_> {
     fn service_interrupt(&self, interrupt: u32) -> bool {
         match interrupt {
