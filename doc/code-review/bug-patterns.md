@@ -209,8 +209,22 @@ or fires immediately, at an interval nobody reproduces during review.
 
 - Any `unsafe` in new `capsules/`, `chips/`, or `libraries/` code is a hard
   violation - report it regardless of justification.
-- Missing `/// # Safety` on an `unsafe fn`, or a missing `// SAFETY:` at a use
-  site, is a finding on its own.
+- Missing `# Safety` doc section on an `unsafe fn`, or a missing `// SAFETY:`
+  on an unsafe block, is a finding on its own. Judge new code as if
+  `clippy::missing_safety_doc` and `clippy::undocumented_unsafe_blocks` were
+  denied tree-wide. They are not yet - both are `allow` today, so **CI will not
+  catch this** and review is the only thing that will - but
+  [tock/tock#5003](https://github.com/tock/tock/pull/5003) turns
+  `missing_safety_doc` into a hard error for the kernel crate, and the direction
+  is tree-wide.
+- A `# Safety` doc section on a function that is *not* `unsafe` is also a
+  defect (`clippy::unnecessary_safety_doc`, which is enabled): either the
+  section is wrong or the signature is.
+- Write `# Safety` and `// SAFETY:` exactly. Clippy is looser than that - it
+  accepts a `Safety` heading at any level and matches `SAFETY:`
+  case-insensitively - so `### Safety` and `// safety:` pass the lint while
+  still being wrong. Correct them in a separate pull request, not in the change
+  under review.
 - A `SAFETY:` comment that describes *what* the code does rather than *why the
   precondition is satisfied* does not discharge the requirement.
 - `unsafe` on a function with no actual memory- or type-safety precondition is

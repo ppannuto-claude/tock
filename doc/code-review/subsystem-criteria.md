@@ -32,12 +32,12 @@ Sources: `AGENTS.md`, `doc/CodeReview.md`, `doc/CodeGoals.md`, `doc/Style.md`,
   **at all**. This is a hard rule; report any violation regardless of how
   well-justified the block looks.
 - Every `unsafe` must be accompanied by a comment explaining why it is needed
-  and why it cannot trigger undefined behavior. In the current tree the forms
-  are `/// # Safety` on the declaration of an `unsafe fn` or trait, and
-  `// SAFETY: <reasoning>` at the use site. (`AGENTS.md` and `doc/CodeReview.md`
-  word this as a comment starting with `### Safety`; the in-tree convention is
-  the `# Safety` / `SAFETY:` pair, and a small amount of older lowercase
-  `// safety:` text survives. Match the tree for new code.)
+  and why it cannot trigger undefined behavior. The forms are the ones clippy
+  defines - `# Safety` as a doc section on an `unsafe fn`
+  (`clippy::missing_safety_doc`), and a `// SAFETY:` comment on the block
+  (`clippy::undocumented_unsafe_blocks`). Write those two forms; anything else
+  is an error to be corrected. See "The safety-comment rule" below for what
+  clippy does and does not catch here.
 - A `SAFETY:` comment that restates *what* the code does, rather than *why the
   precondition holds*, is not a safety comment. This is worth a finding.
 - `unsafe` used where nothing is actually memory- or type-unsafe is itself a
@@ -46,6 +46,37 @@ Sources: `AGENTS.md`, `doc/CodeReview.md`, `doc/CodeGoals.md`, `doc/Style.md`,
 - Conversely: new functionality that is publicly exported and carries
   invariants the type system cannot enforce - especially access to core kernel
   data structures - should be guarded by a capability.
+
+**The safety-comment rule.** Clippy's lints define the convention, so write
+what they expect and nothing else:
+
+- `# Safety` as a doc section on an `unsafe fn`, and `// SAFETY:` on the unsafe
+  block.
+- A safe function must **not** carry a `# Safety` doc section
+  (`clippy::unnecessary_safety_doc`). If a function documents preconditions
+  under `# Safety` but is not `unsafe`, either the section is wrong or the
+  signature is.
+
+**Write new code as if these lints were denied everywhere.** They are not
+denied everywhere *yet* - `missing_safety_doc` is currently `allow` in the root
+`Cargo.toml`, and `undocumented_unsafe_blocks` sits in the `restriction` group,
+which is allowed wholesale - but that is a transitional state, not permission.
+[tock/tock#5003](https://github.com/tock/tock/pull/5003) denies
+`clippy::missing_safety_doc` for the kernel crate, and the intent is to extend
+that across the tree. Undocumented `unsafe` in new code is a defect when it is
+written, not when CI eventually starts failing on it.
+
+One consequence for a reviewer: because the lints are not on yet, **nothing in
+CI currently checks that unsafe code is documented at all**. That check exists
+only in review, which is why it is on this list. A second: clippy is looser
+about the *form* than the convention is. `missing_safety_doc` accepts a
+`Safety` heading at any level, so `### Safety` satisfies it; and
+`undocumented_unsafe_blocks` matches the `SAFETY:` prefix case-insensitively,
+so `// safety:` passes. Write `# Safety` and `// SAFETY:` regardless - passing
+the lint is the floor, not the standard.
+
+Correcting pre-existing deviations is worthwhile, but belongs in its own pull
+request rather than in whatever change is under review.
 
 **Callbacks.** Code must not issue a callback from within a downcall. A
 callback may only fire in response to an interrupt or a deferred call. See
