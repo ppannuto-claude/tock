@@ -95,26 +95,36 @@ impl<'a> Timer<'a> {
         }
     }
 
-    fn live_now(&self) -> u32 {
-        let value = self.registers.value.read(VALUE::Value);
-        // VALUE only ever counts down between resyncs (any reload happens
-        // via `handle_interrupt`, which itself resyncs), so this
-        // subtraction is always of a smaller-or-equal current value from
-        // the last known one.
+    /// The absolute tick count that a raw `VALUE` reading corresponds to.
+    ///
+    /// Exact modulo 2**32 no matter how many reloads have happened since the
+    /// last resync: a full countdown is `u32::MAX` ticks down to 0 plus one
+    /// more to reload, i.e. exactly 2**32 ticks, which is invisible in
+    /// [`Ticks32`] arithmetic. So the wrapping subtraction below recovers the
+    /// elapsed time whether or not `VALUE` has wrapped in between.
+    fn now_from(&self, value: u32) -> u32 {
         self.synced_now
             .get()
             .wrapping_add(self.synced_value.get().wrapping_sub(value))
     }
 
+    /// Re-anchor the tracked epoch onto the live `VALUE`.
+    fn resync(&self) {
+        let value = self.registers.value.read(VALUE::Value);
+        self.synced_now.set(self.now_from(value));
+        self.synced_value.set(value);
+    }
+
     pub fn handle_interrupt(&self) {
         self.registers.intstatus.write(INTSTATUS::Irq::SET);
 
-        // Whatever VALUE was set to before hitting 0, the hardware has now
-        // reloaded it from RELOAD (u32::MAX), and that reload happened
-        // exactly `synced_value` ticks after `synced_now`.
-        self.synced_now
-            .set(self.synced_now.get().wrapping_add(self.synced_value.get()));
-        self.synced_value.set(u32::MAX);
+        // Re-anchor on what VALUE actually reads, rather than assuming that
+        // exactly `synced_value` ticks elapsed and that the hardware has
+        // since reloaded RELOAD (u32::MAX). That assumption loses one tick
+        // per interrupt -- it accounts for the countdown to 0 but not for
+        // the extra tick the reload itself takes -- and the loss accumulates
+        // over every alarm expiry and every free-run wrap.
+        self.resync();
 
         if self.armed.take() {
             self.client.map(|client| client.alarm());
@@ -127,7 +137,7 @@ impl Time for Timer<'_> {
     type Ticks = Ticks32;
 
     fn now(&self) -> Ticks32 {
-        Ticks32::from(self.live_now())
+        Ticks32::from(self.now_from(self.registers.value.read(VALUE::Value)))
     }
 }
 
@@ -139,14 +149,14 @@ impl<'a> Alarm<'a> for Timer<'a> {
     fn set_alarm(&self, reference: Ticks32, dt: Ticks32) {
         let now = self.now();
         let target = reference.wrapping_add(dt);
-        self.target.set(target.into_usize() as u32);
+        self.target.set(target.into_u32());
 
         let elapsed = now.wrapping_sub(reference);
         let remaining = if elapsed >= dt {
             self.minimum_dt()
         } else {
             let r = dt.wrapping_sub(elapsed);
-            if r.into_usize() < self.minimum_dt().into_usize() {
+            if r < self.minimum_dt() {
                 self.minimum_dt()
             } else {
                 r
@@ -154,9 +164,9 @@ impl<'a> Alarm<'a> for Timer<'a> {
         };
 
         // Resync to "now" before shortening the countdown: the write to
-        // VALUE below becomes the new reference point for `live_now`.
-        self.synced_now.set(now.into_usize() as u32);
-        let remaining_raw = remaining.into_usize() as u32;
+        // VALUE below becomes the new reference point for `now_from`.
+        self.synced_now.set(now.into_u32());
+        let remaining_raw = remaining.into_u32();
         self.synced_value.set(remaining_raw);
         self.armed.set(true);
         self.registers.value.write(VALUE::Value.val(remaining_raw));
