@@ -7,7 +7,7 @@ real vendor chip. This is a purely virtual target for exercising the Cortex-M3
 arch under QEMU, useful for CI and kernel development without access to real
 ARM hardware.
 
-See `mps2_base`'s crate docs for peripheral details.
+See `mps2_base`'s README for peripheral details.
 
 Running QEMU
 ------------

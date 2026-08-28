@@ -15,7 +15,6 @@ kernel = { path = "../../../kernel" }
 qemu_arm_mps2 = { path = "../../../chips/qemu_arm_mps2" }
 
 capsules-core = { path = "../../../capsules/core" }
-capsules-extra = { path = "../../../capsules/extra" }
 capsules-system = { path = "../../../capsules/system" }
 
 [lints]

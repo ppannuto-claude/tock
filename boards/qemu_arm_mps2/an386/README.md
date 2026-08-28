@@ -10,7 +10,7 @@ ARM hardware.
 The AN386 does have a FPU available, but this board does not yet exercise that
 (i.e., it uses the `cortexm4` architecture crate, not `cortexm4f`).
 
-See `mps2_base`'s crate docs for peripheral details.
+See `mps2_base`'s README for peripheral details.
 
 Running QEMU
 ------------
@@ -21,7 +21,7 @@ Running QEMU
   $ make run
   [...]
      text	   data	    bss	    dec	    hex	filename
-    61484	      0	  15664	  77148	  12d5c	target/thumbv7em-none-eabi/release/mps2-an386
+    63532	      0	  15664	  79196	  1355c	target/thumbv7em-none-eabi/release/mps2-an386
 
   Running QEMU emulator version 10.2.1 with
    - kernel target/thumbv7em-none-eabi/release/mps2-an386.elf

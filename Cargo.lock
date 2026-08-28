@@ -756,7 +756,6 @@ name = "mps2_base"
 version = "0.2.3-dev"
 dependencies = [
  "capsules-core",
- "capsules-extra",
  "capsules-system",
  "components",
  "cortexm",

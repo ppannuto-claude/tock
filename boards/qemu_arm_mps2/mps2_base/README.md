@@ -3,7 +3,7 @@ QEMU ARM MPS2 Family
 
 ARM provides the `MPS + ANXXX` Cortex-M System Design Kit (CMSDK) reference
 platforms for hardware bringup. These are a common peripheral suite coupled with
-differing cores. This crate is the shared based platform.
+differing cores. This crate is the shared base platform.
 
 Peripherals
 -----------

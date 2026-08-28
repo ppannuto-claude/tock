@@ -1,8 +1,8 @@
 # ARM MPS2 "Chip" Family
 
-The MPS2 an FPGA board from ARM designed for hardware/software co-design.
+The MPS2 is an FPGA board from ARM designed for hardware/software co-design.
 
-The `mp2-an*` family of boards all use the same peripheral hardware, they just
+The `mps2-an*` family of boards all use the same peripheral hardware, they just
 swap in different CPU cores. The naming scheme refers to the Application Note
 that defines the full FPGA image, and pragmatically which CPU core is attached.
 
@@ -10,7 +10,7 @@ For more details on the platform, see the QEMU documentation on the MPS2 family:
 https://www.qemu.org/docs/master/system/arm/mps2.html
 
 As the only difference is the underlying core, this chip crate exposes a Cargo
-`feature` to select between instantations. This `feature` *only* impacts the
+`feature` to select between instantiations. This `feature` *only* impacts the
 vector table, which requires core-specific handler methods.
 
 The upstream MPS2 family supports the following configurations (as of Aug 2026):
