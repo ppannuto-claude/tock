@@ -1,0 +1,74 @@
+# Licensed under the Apache License, Version 2.0 or the MIT License.
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Copyright Tock Contributors 2026.
+
+# Builds the merged rustdoc tree, and publishes it to Netlify
+# (docs.tockos.org) from master.
+#
+# NOTE: This needs two repo secrets, NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID.
+
+name: docs-ci
+
+env:
+  TERM: xterm # Makes tput work in actions output
+
+on:
+  push:
+    branches: [master] # Publishes. Every other trigger below only builds.
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+# ┌────────────────┬──────────────────────────────────────────────────┬─────────────────────────────┐
+# │    trigger     │                    github.ref                    │       resulting group       │
+# ├────────────────┼──────────────────────────────────────────────────┼─────────────────────────────┤
+# │ PR (any push)  │ refs/pull/<N>/merge                              │ docs-ci-refs/pull/<N>/merge │
+# ├────────────────┼──────────────────────────────────────────────────┼─────────────────────────────┤
+# │ push to master │ refs/heads/master                                │ docs-ci-refs/heads/master   │
+# ├────────────────┼──────────────────────────────────────────────────┼─────────────────────────────┤
+# │ merge queue    │ refs/heads/gh-readonly-queue/master/pr-<N>-<sha> │ unique per queue entry      │
+# └────────────────┴──────────────────────────────────────────────────┴─────────────────────────────┘
+#
+# Master runs queue rather than cancel. The CLI blocks until the deploy is
+# live, so serializing runs is what serializes publishes; cancelling a run
+# would kill the client without cancelling the server-side deploy, letting
+# two resolve concurrently and possibly land out of order.
+concurrency:
+  group: docs-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci-docs:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    # The build runs in ~2 minutes; the upload of ~27k files is the slow half
+    # and Netlify warns it can take "many minutes" at that count. This is only
+    # here so a wedged deploy fails in half an hour instead of six.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: ci-runner-docs
+        run: make ci-runner-docs
+
+      # Only pushes to master publish.
+      - name: Deploy to Netlify
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        # --dir: What to publish
+        # --prod: Push to production
+        # --no-build: Don't build anything
+        # --message: Label for netlify for this upload
+        run: |
+          npx --yes netlify-cli@27.4.1 deploy \
+            --dir=doc/rustdoc \
+            --prod \
+            --no-build \
+            --message "master @ $GITHUB_SHA"
