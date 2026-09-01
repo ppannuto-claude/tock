@@ -3,14 +3,13 @@
 # Copyright Tock Contributors 2026.
 
 [package]
-name = "qemu_arm_mps2"
+name = "qemu_arm_mps2_an386"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-cortexm = { path = "../../arch/cortex-m" }
-kernel = { path = "../../kernel" }
+cortexm4 = { path = "../../arch/cortex-m4" }
 
 [lints]
 workspace = true

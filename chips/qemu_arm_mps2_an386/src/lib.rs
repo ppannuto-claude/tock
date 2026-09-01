@@ -2,13 +2,24 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright Tock Contributors 2026.
 
-//! ARM Cortex-M vector table for the MPS2 AN386 (Cortex-M4) machine.
+//! Chip support specific to the ARM MPS2 AN386 FPGA image.
 //!
-//! There is no bootloader relocating the vector table on this QEMU-only
-//! FPGA image: it is loaded and executed directly from address 0, which
-//! is where the linker script places the `.vectors` section.
+//! Shared peripherals live in the `qemu_arm_mps2` family crate.
+//!
+//! Nothing relocates the vector table: the image executes directly from
+//! address 0, where the linker script places `.vectors`.
 
-use cortexm4::{CortexM4, CortexMVariant, initialize_ram_jump_to_main, unhandled_interrupt};
+#![no_std]
+
+/// This image's CPU core.
+///
+/// Boards name their core through here rather than reaching for `cortexm4`
+/// directly, because nothing else in this crate is referenced by name and a
+/// dependency nothing names is dropped before the linker sees the vector
+/// table below.
+pub use cortexm4::CortexM4;
+
+use cortexm4::{CortexMVariant, initialize_ram_jump_to_main, unhandled_interrupt};
 
 extern "C" {
     // _estack is not really a function, but it makes the types work.
@@ -25,6 +36,8 @@ extern "C" {
     link_section = ".vectors"
 )]
 #[cfg_attr(all(target_arch = "arm", target_os = "none"), used)]
+// Stable name so each board's `layout.ld` can assert this crate was linked.
+#[unsafe(export_name = "mps2_vector_table")]
 /// ARM Cortex-M Vector Table
 pub static BASE_VECTORS: [unsafe extern "C" fn(); 16] = [
     _estack,                      // Stack Pointer

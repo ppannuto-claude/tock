@@ -108,6 +108,8 @@ members = [
     "chips/pci-x86",
     "chips/x86_q35",
     "chips/qemu_arm_mps2",
+    "chips/qemu_arm_mps2_an385",
+    "chips/qemu_arm_mps2_an386",
     "chips/qemu_rv32_virt_chip",
     "chips/qemu_virt_chip",
     "chips/psc3",

@@ -3,6 +3,9 @@
 // Copyright Tock Contributors 2026.
 
 //! Chip support for the ARM MPS2 AN385/AN386 FPGA images under QEMU.
+//!
+//! Peripherals are common to both; each image's core and vector table are in
+//! its own crate (`qemu_arm_mps2_an385`, `qemu_arm_mps2_an386`).
 
 #![no_std]
 
@@ -13,11 +16,6 @@ pub mod spi;
 pub mod timer;
 pub mod uart;
 pub mod watchdog;
-
-#[cfg(feature = "cortex-m3")]
-pub mod vectors_m3;
-#[cfg(feature = "cortex-m4")]
-pub mod vectors_m4;
 
 use kernel::platform::chip::InterruptService;
 

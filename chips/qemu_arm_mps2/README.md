@@ -9,9 +9,9 @@ that defines the full FPGA image, and pragmatically which CPU core is attached.
 For more details on the platform, see the QEMU documentation on the MPS2 family:
 https://www.qemu.org/docs/master/system/arm/mps2.html
 
-As the only difference is the underlying core, this chip crate exposes a Cargo
-`feature` to select between instantiations. This `feature` *only* impacts the
-vector table, which requires core-specific handler methods.
+As the only difference is the underlying core, and all that amounts to is the
+vector table, this crate holds the shared peripherals and each image has its
+own crate for the rest: `qemu_arm_mps2_an385` and `qemu_arm_mps2_an386`.
 
 The upstream MPS2 family supports the following configurations (as of Aug 2026):
  - mps2-an385, a Cortex-M3

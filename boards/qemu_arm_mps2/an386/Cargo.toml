@@ -12,7 +12,8 @@ edition.workspace = true
 [dependencies]
 cortexm4 = { path = "../../../arch/cortex-m4" }
 kernel = { path = "../../../kernel" }
-qemu_arm_mps2 = { path = "../../../chips/qemu_arm_mps2", features = ["cortex-m4"] }
+qemu_arm_mps2 = { path = "../../../chips/qemu_arm_mps2" }
+qemu_arm_mps2_an386 = { path = "../../../chips/qemu_arm_mps2_an386" }
 mps2_base = { path = "../mps2_base" }
 
 [build-dependencies]
