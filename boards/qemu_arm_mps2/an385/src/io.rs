@@ -5,14 +5,7 @@
 use core::panic::PanicInfo;
 
 use kernel::debug;
-use kernel::debug::PanicResources;
 use kernel::hil::uart;
-use kernel::utilities::single_thread_value::SingleThreadValue;
-
-/// Board-owned panic-time resources.
-pub(crate) static PANIC_RESOURCES: SingleThreadValue<
-    PanicResources<mps2_base::ChipHw<cortexm3::CortexM3>, mps2_base::ProcessPrinterInUse>,
-> = SingleThreadValue::new();
 
 /// Panic handler.
 #[panic_handler]
@@ -30,7 +23,7 @@ pub unsafe fn panic_fmt(info: &PanicInfo) -> ! {
         },
         info,
         &cortexm3::support::nop,
-        PANIC_RESOURCES.get(),
+        crate::PANIC_RESOURCES.get(),
     );
 
     // SAFETY: the system is no longer in a well-defined state (we're in the

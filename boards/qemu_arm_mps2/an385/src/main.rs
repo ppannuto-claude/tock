@@ -12,11 +12,19 @@
 
 use kernel::capabilities;
 use kernel::create_capability;
+use kernel::debug::PanicResources;
 use kernel::static_init;
+use kernel::utilities::single_thread_value::SingleThreadValue;
 
 pub mod io;
 
 kernel::stack_size! {0x2000}
+
+/// Board-owned panic-time resources, populated by `mps2_base` during boot
+/// and read back by the `#[panic_handler]` in `io.rs`.
+static PANIC_RESOURCES: SingleThreadValue<
+    PanicResources<mps2_base::ChipHw<cortexm3::CortexM3>, mps2_base::ProcessPrinterInUse>,
+> = SingleThreadValue::new();
 
 /// Main function called after RAM initialized.
 #[no_mangle]
@@ -25,7 +33,7 @@ pub unsafe fn main() {
     // anything else touches the chip's peripherals or kernel state -- see
     // `mps2_base::early_init()`'s safety doc. `CortexM3` is this
     // board's actual CPU core.
-    let early = unsafe { mps2_base::early_init::<cortexm3::CortexM3>(&io::PANIC_RESOURCES) };
+    let early = unsafe { mps2_base::early_init::<cortexm3::CortexM3>(&PANIC_RESOURCES) };
 
     // Create the actual chip instance (with specific Cortex-M variant)
     let chip = static_init!(
