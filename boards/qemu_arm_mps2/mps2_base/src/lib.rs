@@ -122,10 +122,11 @@ impl<C: CortexMVariant> KernelResources<ChipHw<C>> for Platform {
 
 /// Peripherals and kernel state ready for allocating the chip and calling
 /// [`finish_start()`].
-pub struct EarlyInit {
+pub struct EarlyInit<C: CortexMVariant + 'static> {
     pub peripherals: &'static qemu_arm_mps2::Mps2DefaultPeripherals<'static>,
     pub processes: &'static kernel::process::ProcessArray<NUM_PROCS>,
     pub board_kernel: &'static kernel::Kernel,
+    pub panic_resources: &'static SingleThreadValue<PanicResources<ChipHw<C>, ProcessPrinterInUse>>,
 }
 
 /// Runs the CPU-variant init and allocates peripherals/kernel state.
@@ -137,8 +138,11 @@ pub struct EarlyInit {
 /// `early_init`, then its own `static_init!(ChipHw<C>, ...)`, then
 /// `finish_start`.
 ///
-/// `panic_resources` is board-owned for the same reason but filled in here
-/// so both boards only have to declare it, not populate it.
+/// `panic_resources` is board-owned for the same reason, but populating it
+/// happens here and in [`finish_start()`], so both boards only have to
+/// declare the static. It is carried through [`EarlyInit`] rather than
+/// passed to both functions, so the two halves cannot be handed different
+/// statics.
 ///
 /// # Safety
 ///
@@ -151,7 +155,7 @@ pub struct EarlyInit {
 #[inline(never)]
 pub unsafe fn early_init<C: CortexMVariant>(
     panic_resources: &'static SingleThreadValue<PanicResources<ChipHw<C>, ProcessPrinterInUse>>,
-) -> EarlyInit {
+) -> EarlyInit<C> {
     ChipHw::<C>::init();
 
     kernel::deferred_call::initialize_deferred_call_state::<<ChipHw<C> as Chip>::ThreadIdProvider>(
@@ -169,10 +173,15 @@ pub unsafe fn early_init<C: CortexMVariant>(
         .finalize(components::process_array_component_static!(NUM_PROCS));
     let board_kernel = static_init!(kernel::Kernel, kernel::Kernel::new(processes.as_slice()));
 
+    panic_resources.get().map(|resources| {
+        resources.processes.put(processes.as_slice());
+    });
+
     EarlyInit {
         peripherals,
         processes,
         board_kernel,
+        panic_resources,
     }
 }
 
@@ -191,7 +200,7 @@ pub unsafe fn early_init<C: CortexMVariant>(
 /// which is safe to repeat.
 #[inline(never)]
 pub unsafe fn finish_start<C: CortexMVariant>(
-    early: EarlyInit,
+    early: EarlyInit<C>,
     chip: &'static ChipHw<C>,
 ) -> (
     &'static kernel::Kernel,
@@ -202,7 +211,12 @@ pub unsafe fn finish_start<C: CortexMVariant>(
         peripherals,
         processes,
         board_kernel,
+        panic_resources,
     } = early;
+
+    panic_resources.get().map(|resources| {
+        resources.chip.put(chip);
+    });
 
     let uart_mux = components::console::UartMuxComponent::new(&peripherals.uart0, 115200)
         .finalize(components::uart_mux_component_static!());
@@ -239,12 +253,18 @@ pub unsafe fn finish_start<C: CortexMVariant>(
         kernel::capabilities::ProcessManagementCapability,
         kernel::capabilities::ProcessStartCapability
     );
+    let process_printer = components::process_printer::ProcessPrinterTextComponent::new()
+        .finalize(components::process_printer_text_component_static!());
+
+    panic_resources.get().map(|resources| {
+        resources.printer.put(process_printer);
+    });
+
     let process_console = components::process_console::ProcessConsoleComponent::new(
         board_kernel,
         uart_mux,
         alarm_mux,
-        components::process_printer::ProcessPrinterTextComponent::new()
-            .finalize(components::process_printer_text_component_static!()),
+        process_printer,
         None,
         process_console_cap,
     )
