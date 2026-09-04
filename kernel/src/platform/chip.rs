@@ -8,6 +8,7 @@ use crate::platform::mpu;
 use crate::syscall;
 use crate::utilities::io_write::IoWrite;
 use core::fmt::Write;
+use core::panic::PanicInfo;
 
 /// Interface for individual MCUs.
 ///
@@ -95,6 +96,12 @@ pub trait Chip {
     /// `None`. The implementation of `print_state` may not print certain
     /// information if it depends on runtime-accessible state in `Self`, but
     /// that reference is not provided.
+    ///
+    /// # Safety
+    ///
+    /// Implementations may need to access low-level chip-specific hardware that
+    /// isn't safe to access during the normal operation of the chip. This
+    /// function may only be called from a panic context.
     unsafe fn print_state(this: Option<&Self>, writer: &mut dyn Write);
 }
 
@@ -218,5 +225,12 @@ pub trait PanicWriter {
     ///
     /// The writer must implement [`IoWrite`] (which is just `std:io::Write`
     /// implemented for no_std).
-    unsafe fn create_panic_writer(config: Self::Config) -> impl IoWrite + core::fmt::Write;
+    ///
+    /// This function requires a [`PanicInfo`] reference, but the implementation
+    /// should not use it. This only enforces that this function is only called
+    /// from a panic context and not during normal operation.
+    fn create_panic_writer(
+        config: Self::Config,
+        _panic: &PanicInfo,
+    ) -> impl IoWrite + core::fmt::Write;
 }
