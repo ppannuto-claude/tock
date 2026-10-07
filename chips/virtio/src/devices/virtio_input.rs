@@ -12,7 +12,7 @@
 
 use kernel::platform::dma_fence::DmaFence;
 use kernel::utilities::cells::OptionalCell;
-use kernel::utilities::leasable_buffer::{SubSliceMut, SubSliceMutImmut};
+use kernel::utilities::leasable_buffer::SubSliceMut;
 
 use crate::devices::{VirtIODeviceDriver, VirtIODeviceType};
 use crate::queues::split_queue::{
@@ -104,7 +104,9 @@ impl<F: DmaFence> SplitVirtqueueClient<'static> for VirtIOInput<'_, F> {
                 .expect("Split Virtqueue buffer_chain_ready but no buffer!")
                 .virtqueue_buffer
             else {
-                panic!("Split Virtqueue returned DeviceReadable buffer for VirtIO input driver")
+                panic!(
+                    "Split Virtqueue returned a buffer other than DeviceWriteable for VirtIO input driver"
+                )
             };
             let event_slice = event_sub_slice_mut.take();
 
@@ -152,14 +154,13 @@ impl<F: DmaFence> SplitVirtqueueClient<'static> for VirtIOInput<'_, F> {
         } else if queue_number == self.statusq.queue_number().unwrap() {
             // Sent a status update
 
-            let VirtqueueBuffer::DeviceReadable(SubSliceMutImmut::Mutable(status_sub_slice_mut)) =
-                buffer_chain[0]
-                    .take()
-                    .expect("No status buffer")
-                    .virtqueue_buffer
+            let VirtqueueBuffer::DeviceReadableMut(status_sub_slice_mut) = buffer_chain[0]
+                .take()
+                .expect("No status buffer")
+                .virtqueue_buffer
             else {
                 panic!(
-                    "VirtIO input returned either DeviceWritable buffer or Immutable sub slice for status queue"
+                    "VirtIO input returned a buffer other than DeviceReadableMut for status queue"
                 )
             };
 

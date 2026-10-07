@@ -59,7 +59,7 @@ impl<'a, 'b, F: DmaFence> VirtIORng<'a, 'b, F> {
                 let VirtqueueBuffer::DeviceWriteable(sub_slice_mut) =
                     buffer_chain[0].take().unwrap()
                 else {
-                    panic!("SplitVirtqueue returned DeviceReadable buffer!")
+                    panic!("SplitVirtqueue returned a buffer other than DeviceWriteable!")
                 };
                 Err((sub_slice_mut.take(), ErrorCode::NOMEM))
             }
@@ -89,7 +89,7 @@ impl<'a, 'b, F: DmaFence> VirtIORng<'a, 'b, F> {
         let VirtqueueBuffer::DeviceWriteable(sub_slice_mut) =
             virtqueue_return_buffer.virtqueue_buffer
         else {
-            panic!("SplitVirtqueue returned DeviceReadable buffer!")
+            panic!("SplitVirtqueue returned a buffer other than DeviceWriteable!")
         };
         let buf = sub_slice_mut.take();
 

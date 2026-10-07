@@ -19,8 +19,8 @@ use core::cmp;
 use kernel::ErrorCode;
 use kernel::platform::dma_fence::DmaFence;
 use kernel::utilities::cells::OptionalCell;
-use kernel::utilities::dma_slice::{DmaSubSliceMut, DmaSubSliceMutImmut};
-use kernel::utilities::leasable_buffer::{SubSliceMut, SubSliceMutImmut};
+use kernel::utilities::dma_slice::{DmaSubSlice, DmaSubSliceMut, DmaSubSliceMutImmut};
+use kernel::utilities::leasable_buffer::{SubSlice, SubSliceMut, SubSliceMutImmut};
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
 use kernel::utilities::registers::{InMemoryRegister, register_bitfields};
 
@@ -322,7 +322,8 @@ impl AvailableRingHelper {
 ///    diagnostic purposes).
 #[derive(Debug)]
 pub enum VirtqueueBuffer<'b> {
-    DeviceReadable(SubSliceMutImmut<'b, u8>),
+    DeviceReadableMut(SubSliceMut<'b, u8>),
+    DeviceReadableImmut(SubSlice<'b, u8>),
     DeviceWriteable(SubSliceMut<'b, u8>),
 }
 
@@ -360,12 +361,15 @@ impl<'b> VirtqueueDmaBuffer<'b> {
         fence: impl DmaFence,
     ) -> Self {
         match virtqueue_buffer {
-            VirtqueueBuffer::DeviceReadable(sub_slice_mut_immut) => {
+            VirtqueueBuffer::DeviceReadableMut(sub_slice_mut) => {
                 VirtqueueDmaBuffer::DeviceReadable(DmaSubSliceMutImmut::new(
-                    sub_slice_mut_immut,
+                    SubSliceMutImmut::Mutable(sub_slice_mut),
                     fence,
                 ))
             }
+            VirtqueueBuffer::DeviceReadableImmut(sub_slice) => VirtqueueDmaBuffer::DeviceReadable(
+                DmaSubSliceMutImmut::Immutable(DmaSubSlice::new(sub_slice, fence)),
+            ),
             VirtqueueBuffer::DeviceWriteable(sub_slice_mut) => {
                 // Wrap the queue buffer in a DmaSlice.
                 //
@@ -382,7 +386,14 @@ impl<'b> VirtqueueDmaBuffer<'b> {
     unsafe fn into_virtqueue_buffer(self, fence: impl DmaFence) -> VirtqueueBuffer<'b> {
         match self {
             VirtqueueDmaBuffer::DeviceReadable(dma_sub_slice_mut_immut) => {
-                VirtqueueBuffer::DeviceReadable(dma_sub_slice_mut_immut.take())
+                match dma_sub_slice_mut_immut.take() {
+                    SubSliceMutImmut::Mutable(sub_slice_mut) => {
+                        VirtqueueBuffer::DeviceReadableMut(sub_slice_mut)
+                    }
+                    SubSliceMutImmut::Immutable(sub_slice) => {
+                        VirtqueueBuffer::DeviceReadableImmut(sub_slice)
+                    }
+                }
             }
             VirtqueueDmaBuffer::DeviceWriteable(dma_sub_slice_mut) => {
                 VirtqueueBuffer::DeviceWriteable(unsafe { dma_sub_slice_mut.take(fence) })
