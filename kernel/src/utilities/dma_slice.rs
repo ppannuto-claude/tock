@@ -773,7 +773,10 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSubSliceMutImm
     /// that the DMA operation over the buffer is complete (such as by reading a
     /// status bit in memory or an MMIO register). Otherwise, any future reads
     /// by the DMA peripheral may not be consistent with the buffer contents.
-    pub fn take(self) -> SubSliceMutImmut<'a, T> {
+    ///
+    /// Unlike [`DmaSubSliceMut::take`], this is safe and takes no fence, as
+    /// DMA operations must not write to a [`DmaSubSliceMutImmut`]'s buffer.
+    pub fn into_inner(self) -> SubSliceMutImmut<'a, T> {
         // We don't need to perform an `acquire` fence, as any DMA operation on
         // the underlying slice must not have changed its contents:
         match self {
@@ -784,8 +787,9 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSubSliceMutImm
                 // SAFETY: The user guarantees that there has not been any DMA operation
                 // that changed the buffers contents while the
                 // `DmaSubSliceMutImmut` existed, and hence restoring a unique
-                // Rust slice through `take` is safe. No acquire-fence is
-                // needed, given the bufer contents have not been modified.
+                // Rust slice through `take_no_acquire` is safe. No
+                // acquire-fence is needed, given the bufer contents have not
+                // been modified.
                 unsafe { dma_sub_slice_mut.take_no_acquire() },
             ),
         }
@@ -1169,7 +1173,7 @@ mod miri_tests {
         let val = unsafe { ptr::read(dma.as_ptr().add(2)) };
         assert_eq!(val, 13);
 
-        let SubSliceMutImmut::Immutable(restored) = dma.take() else {
+        let SubSliceMutImmut::Immutable(restored) = dma.into_inner() else {
             panic!("an Immutable SubSliceMutImmut must be restored as Immutable");
         };
         assert_eq!(restored.active_range(), 1..4);
@@ -1193,7 +1197,7 @@ mod miri_tests {
         let val = unsafe { ptr::read(dma.as_ptr()) };
         assert_eq!(val, 12);
 
-        let SubSliceMutImmut::Mutable(restored) = dma.take() else {
+        let SubSliceMutImmut::Mutable(restored) = dma.into_inner() else {
             panic!("a Mutable SubSliceMutImmut must be restored as Mutable");
         };
         assert_eq!(restored.active_range(), 2..5);
