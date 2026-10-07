@@ -124,6 +124,7 @@ use crate::platform::dma_fence::DmaFence;
 /// read or write operation issued after this function returns, and which finish
 /// before the resulting [`DmaSlice`] is dropped.
 #[derive(Debug)]
+#[must_use]
 pub struct DmaSlice<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     slice: &'a [T],
 }
@@ -214,6 +215,7 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSlice<'a, T> {
 /// trait. See the [zerocopy crate](https://docs.rs/zerocopy/0.8.31/zerocopy/)
 /// for a more in-depth explanation of these requirements.
 #[derive(Debug)]
+#[must_use]
 pub struct DmaSliceMut<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     slice_ptr: NonNull<[T]>,
     _lt: PhantomData<&'a mut [T]>,
@@ -236,7 +238,6 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSliceMut<'a, T
     /// provide access to the underlying buffer without guaranteeing that the
     /// DMA operation has finished.  Users **must** eventually call
     /// [`take`](Self::take) to retrieve the underlying buffer.
-    #[must_use]
     pub unsafe fn new(slice: &mut [T], fence: impl DmaFence) -> DmaSliceMut<'_, T> {
         let dma_slice_mut = DmaSliceMut {
             slice_ptr: NonNull::from_mut(slice),
@@ -312,6 +313,7 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSliceMut<'a, T
 /// contents *must* not be modified by the DMA operation. For a DMA operation
 /// that may write to the supplied buffer, use [`DmaSliceMut`] instead.
 #[derive(Debug)]
+#[must_use]
 pub enum DmaSliceMutImmut<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     Immutable(DmaSlice<'a, T>),
     Mutable(DmaSliceMut<'a, T>),
@@ -444,6 +446,7 @@ impl<T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSliceMutImmut<'_, 
 /// its contents must not be modified by the DMA operation. For a DMA operation
 /// that may write to the supplied buffer, use [`DmaSubSliceMut`] instead.
 #[derive(Debug)]
+#[must_use]
 pub struct DmaSubSlice<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     sub_slice: SubSlice<'a, T>,
 }
@@ -550,6 +553,7 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSubSlice<'a, T
 /// trait. See the [zerocopy crate](https://docs.rs/zerocopy/0.8.31/zerocopy/)
 /// for a more in-depth explanation of these requirements.
 #[derive(Debug)]
+#[must_use]
 pub struct DmaSubSliceMut<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     internal_slice_ptr: NonNull<[T]>,
     active_range: Range<usize>,
@@ -577,7 +581,6 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSubSliceMut<'a
     /// could provide access to the underlying buffer without guaranteeing that
     /// the DMA operation has finished. Users **must** eventually call
     /// [`take`](Self::take) to retrieve the underlying buffer.
-    #[must_use]
     pub unsafe fn new(
         sub_slice_mut: SubSliceMut<'_, T>,
         fence: impl DmaFence,
@@ -704,6 +707,7 @@ impl<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> DmaSubSliceMut<'a
 /// operation. For a DMA operation that may write to the active range of the
 /// supplied sub slice, use [`DmaSubSliceMut`] instead.
 #[derive(Debug)]
+#[must_use]
 pub enum DmaSubSliceMutImmut<'a, T: immutable_from_into_bytes::ImmutableFromIntoBytes> {
     Immutable(DmaSubSlice<'a, T>),
     Mutable(DmaSubSliceMut<'a, T>),
