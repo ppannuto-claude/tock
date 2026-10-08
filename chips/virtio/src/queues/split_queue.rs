@@ -327,6 +327,26 @@ pub enum VirtqueueBuffer<'b> {
     DeviceWriteable(SubSliceMut<'b, u8>),
 }
 
+impl<'b> VirtqueueBuffer<'b> {
+    /// Returns the wrapped slice if this is a
+    /// [`VirtqueueBuffer::DeviceReadableMut`], or `None` otherwise.
+    pub fn into_readable_mut(self) -> Option<SubSliceMut<'b, u8>> {
+        match self {
+            VirtqueueBuffer::DeviceReadableMut(sub_slice_mut) => Some(sub_slice_mut),
+            _ => None,
+        }
+    }
+
+    /// Returns the wrapped slice if this is a
+    /// [`VirtqueueBuffer::DeviceWriteable`], or `None` otherwise.
+    pub fn into_writeable(self) -> Option<SubSliceMut<'b, u8>> {
+        match self {
+            VirtqueueBuffer::DeviceWriteable(sub_slice_mut) => Some(sub_slice_mut),
+            _ => None,
+        }
+    }
+}
+
 /// A [`VirtqueueBuffer`] as returned by the device.
 ///
 /// In addition to the same [`VirtqueueBuffer`] that was original passed to the

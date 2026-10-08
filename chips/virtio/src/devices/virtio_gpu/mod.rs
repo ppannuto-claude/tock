@@ -638,21 +638,19 @@ impl<'a, 'b, F: DmaFence> VirtIOGPU<'a, 'b, F> {
             .get_mut(0)
             .and_then(|opt_buf| opt_buf.take())
             .expect("Missing request buffer in VirtIO GPU buffer chain");
-        let VirtqueueBuffer::DeviceReadableMut(mut req_sub_slice_mut) =
-            req_virtqueue_buffer.virtqueue_buffer
-        else {
-            panic!("Split Virtqueue returned a buffer other than DeviceReadableMut for request!")
-        };
+        let mut req_sub_slice_mut = req_virtqueue_buffer
+            .virtqueue_buffer
+            .into_readable_mut()
+            .expect("Split Virtqueue returned a buffer other than DeviceReadableMut for request!");
 
         let resp_virtqueue_buffer = buffer_chain
             .get_mut(1)
             .and_then(|opt_buf| opt_buf.take())
             .expect("Missing request buffer in VirtIO GPU buffer chain");
-        let VirtqueueBuffer::DeviceWriteable(mut resp_sub_slice_mut) =
-            resp_virtqueue_buffer.virtqueue_buffer
-        else {
-            panic!("Split Virtqueue returned a buffer other than DeviceWriteable for response!")
-        };
+        let mut resp_sub_slice_mut = resp_virtqueue_buffer
+            .virtqueue_buffer
+            .into_writeable()
+            .expect("Split Virtqueue returned a buffer other than DeviceWriteable for response!");
 
         // Check that the response has a length we can parse into a CtrlHeader:
         if resp_virtqueue_buffer.device_len < CtrlHeader::ENCODED_SIZE {

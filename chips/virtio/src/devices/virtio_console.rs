@@ -87,11 +87,13 @@ impl<'a, F: DmaFence> VirtIOConsole<'a, F> {
                 // Queue is full (should not happen with a single
                 // outstanding one-byte chain) -- hand the buffer back so
                 // future calls can retry, rather than losing it.
-                let VirtqueueBuffer::DeviceWriteable(sub_slice_mut) =
-                    chain[0].take().expect("No rx buffer")
-                else {
-                    panic!("VirtIO console: rx queue returned a buffer other than DeviceWriteable")
-                };
+                let sub_slice_mut = chain[0]
+                    .take()
+                    .expect("No rx buffer")
+                    .into_writeable()
+                    .expect(
+                        "VirtIO console: rx queue returned a buffer other than DeviceWriteable",
+                    );
                 let chunk = sub_slice_mut
                     .take()
                     .first_mut()
@@ -155,13 +157,12 @@ impl<F: DmaFence> SplitVirtqueueClient<'static> for VirtIOConsole<'_, F> {
         bytes_used: usize,
     ) {
         if queue_number == self.rxqueue.queue_number().unwrap() {
-            let VirtqueueBuffer::DeviceWriteable(sub_slice_mut) = buffer_chain[0]
+            let sub_slice_mut = buffer_chain[0]
                 .take()
                 .expect("No rx buffer")
                 .virtqueue_buffer
-            else {
-                panic!("VirtIO console: rx queue returned a buffer other than DeviceWriteable")
-            };
+                .into_writeable()
+                .expect("VirtIO console: rx queue returned a buffer other than DeviceWriteable");
             let chunk = sub_slice_mut
                 .take()
                 .first_mut()
@@ -169,9 +170,10 @@ impl<F: DmaFence> SplitVirtqueueClient<'static> for VirtIOConsole<'_, F> {
             self.handle_rx_chunk(chunk, bytes_used);
         } else if queue_number == self.txqueue.queue_number().unwrap() {
             let tx = buffer_chain[0].take().expect("No tx buffer");
-            let VirtqueueBuffer::DeviceReadableMut(sub_slice_mut) = tx.virtqueue_buffer else {
-                panic!("VirtIO console: tx queue returned a buffer other than DeviceReadableMut")
-            };
+            let sub_slice_mut = tx
+                .virtqueue_buffer
+                .into_readable_mut()
+                .expect("VirtIO console: tx queue returned a buffer other than DeviceReadableMut");
             self.handle_tx_complete(sub_slice_mut.take());
         } else {
             panic!("VirtIO console: callback from unknown queue");
@@ -226,11 +228,11 @@ impl<'a, F: DmaFence> hil::uart::Transmit<'a> for VirtIOConsole<'a, F> {
 
         self.txqueue.provide_buffer_chain(&mut chain).map_err(|e| {
             self.tx_pending.set(false);
-            let VirtqueueBuffer::DeviceReadableMut(sub_slice_mut) =
-                chain[0].take().expect("No tx buffer")
-            else {
-                panic!("VirtIO console: tx chain buffer changed type")
-            };
+            let sub_slice_mut = chain[0]
+                .take()
+                .expect("No tx buffer")
+                .into_readable_mut()
+                .expect("VirtIO console: tx chain buffer changed type");
             (e, sub_slice_mut.take())
         })
     }
